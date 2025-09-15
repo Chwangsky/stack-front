@@ -1,0 +1,1 @@
+export type DropPosition = "top" | "bottom" | "inside";
