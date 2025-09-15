@@ -6,13 +6,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Block, OverInfo } from "../types";
+import { Node, OverInfo } from "../types";
 
 export const SortableBlock = ({
   block,
   overInfo,
 }: {
-  block: Block;
+  block: Node;
   overInfo: OverInfo;
 }) => {
   const {
@@ -22,17 +22,20 @@ export const SortableBlock = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: block.id });
+  } = useSortable({
+    id: block.id,
+    data: { type: "block" },
+  });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0 : 1,
+    opacity: isDragging ? 0.3 : 1,
   };
 
   const isOver = overInfo.id === block.id;
-  const showTop = isOver && overInfo.position === "top";
-  const showBottom = isOver && overInfo.position === "bottom";
+  const showPlaceholder =
+    isOver && (overInfo.position === "top" || overInfo.position === "bottom");
   const showInside = isOver && overInfo.position === "inside";
 
   return (
@@ -43,17 +46,25 @@ export const SortableBlock = ({
       {...listeners}
       className="my-1"
     >
-      {showTop && <div className="h-0.5 bg-blue-400 rounded-full mx-1" />}
-      <div
-        className={`border p-2 rounded shadow bg-gray-700 text-white ${
-          showInside ? "outline outline-2 outline-blue-400" : ""
-        }`}
-      >
-        {block.content}
-      </div>
-      {showBottom && <div className="h-0.5 bg-blue-400 rounded-full mx-1" />}
+      {showPlaceholder && (
+        <div className="opacity-40">
+          {/* 원래 block UI를 그대로 placeholder로 */}
+          <div className="border p-2 rounded shadow bg-gray-700 text-white">
+            {block.content}
+          </div>
+        </div>
+      )}
+      {!showPlaceholder && (
+        <div
+          className={`border p-2 rounded shadow bg-gray-700 text-white ${
+            showInside ? "outline-blue-400" : ""
+          }`}
+        >
+          {block.content}
+        </div>
+      )}
 
-      {block.children && block.children.length > 0 && (
+      {block.children?.length ? (
         <div className="ml-6 border-l pl-2 mt-2">
           <SortableContext
             items={block.children.map((c) => c.id)}
@@ -64,7 +75,7 @@ export const SortableBlock = ({
             ))}
           </SortableContext>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

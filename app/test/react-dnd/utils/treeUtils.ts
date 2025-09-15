@@ -1,89 +1,95 @@
-import { Block } from "../types";
+import { Node } from "../types";
 
-export const findBlockById = (blocks: Block[], id: string): Block | undefined => {
-  for (const block of blocks) {
-    if (block.id === id) return block;
-    if (block.children) {
-      const found = findBlockById(block.children, id);
+/**
+ * 
+ * 재귀적으로 id를 가진 노드를 찾는다.
+ * @param nodes id를 찾을 최상위 노드
+ * @param id 찾을 대상노드의 id
+ * @returns 만일 해당 id인 노드가 트리 안에 존재할 경우, 해당 노드를 리턴한다. 트리 안에 존재하지 않으면, null을 리턴한다.
+ */
+export const findNode = (nodes: Node[], id: string): Node | null => {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    if (n.children) {
+      const found = findNode(n.children, id);
       if (found) return found;
     }
   }
-  return undefined;
+  return null;
 };
 
-export const removeBlock = (blocks: Block[], id: string): [Block | null, Block[]] => {
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    if (b.id === id) {
-      return [b, [...blocks.slice(0, i), ...blocks.slice(i + 1)]];
+/**
+ * 
+ * 재귀적으로 id를 가진 노드를 삭제한다.
+ * @param nodes id를 찾을 최상위 노드
+ * @param id 찾을 대상 노드의 id
+ * @returns 만일 해당 id인 노드가 자식노드 안에 존재할 경우, 해당 노드를 삭제한 child 노
+ * 
+ */
+export const removeNode = (nodes: Node[], id: string): [Node | null, Node[]] => {
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n.id === id) {
+      return [n, [...nodes.slice(0, i), ...nodes.slice(i + 1)]];
     }
-    if (b.children) {
-      const [removed, newChildren] = removeBlock(b.children, id);
+    if (n.children) {
+      const [removed, newChildren] = removeNode(n.children, id);
       if (removed) {
-        return [
-          removed,
-          blocks.map((bb, idx) =>
-            idx === i ? { ...bb, children: newChildren } : bb
-          ),
-        ];
+        return [removed, nodes.map((nn, idx) =>
+          idx === i ? { ...nn, children: newChildren } : nn
+        )];
       }
     }
   }
-  return [null, blocks];
+  return [null, nodes];
 };
 
-export const insertBlock = (blocks: Block[], parentId: string, block: Block): Block[] => {
-  return blocks.map((b) => {
-    if (b.id === parentId) {
-      return { ...b, children: [...(b.children ?? []), block] };
+export const insertBefore = (nodes: Node[], targetId: string, node: Node): Node[] => {
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n.id === targetId) {
+      return [...nodes.slice(0, i), node, ...nodes.slice(i)];
     }
-    if (b.children) {
-      return { ...b, children: insertBlock(b.children, parentId, block) };
-    }
-    return b;
-  });
-};
-
-export const insertBefore = (blocks: Block[], targetId: string, block: Block): Block[] => {
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    if (b.id === targetId) {
-      return [...blocks.slice(0, i), block, ...blocks.slice(i)];
-    }
-    if (b.children) {
-      const newChildren = insertBefore(b.children, targetId, block);
-      if (newChildren !== b.children) {
-        return blocks.map((bb) =>
-          bb.id === b.id ? { ...bb, children: newChildren } : bb
-        );
+    if (n.children) {
+      const newChildren = insertBefore(n.children, targetId, node);
+      if (newChildren !== n.children) {
+        return nodes.map(nn => nn.id === n.id ? { ...nn, children: newChildren } : nn);
       }
     }
   }
-  return blocks;
+  return nodes;
 };
 
-export const insertAfter = (blocks: Block[], targetId: string, block: Block): Block[] => {
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    if (b.id === targetId) {
-      return [...blocks.slice(0, i + 1), block, ...blocks.slice(i + 1)];
+export const insertAfter = (nodes: Node[], targetId: string, node: Node): Node[] => {
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n.id === targetId) {
+      return [...nodes.slice(0, i + 1), node, ...nodes.slice(i + 1)];
     }
-    if (b.children) {
-      const newChildren = insertAfter(b.children, targetId, block);
-      if (newChildren !== b.children) {
-        return blocks.map((bb) =>
-          bb.id === b.id ? { ...bb, children: newChildren } : bb
-        );
+    if (n.children) {
+      const newChildren = insertAfter(n.children, targetId, node);
+      if (newChildren !== n.children) {
+        return nodes.map(nn => nn.id === n.id ? { ...nn, children: newChildren } : nn);
       }
     }
   }
-  return blocks;
+  return nodes;
 };
 
-export const isAncestor = (blocks: Block[], ancestorId: string, targetId: string): boolean => {
-  const node = findBlockById(blocks, ancestorId);
-  if (!node) return false;
-  const stack = [...(node.children ?? [])];
+export const insertInside = (nodes: Node[], parentId: string, node: Node): Node[] => {
+  return nodes.map(n =>
+    n.id === parentId
+      ? { ...n, children: [...(n.children ?? []), node] }
+      : n.children
+        ? { ...n, children: insertInside(n.children, parentId, node) }
+        : n
+  );
+};
+
+export const isAncestor = (nodes: Node[], ancestorId: string, targetId: string): boolean => {
+  const ancestor = findNode(nodes, ancestorId);
+  if (!ancestor) return false;
+  const stack = [...(ancestor.children ?? [])];
   while (stack.length) {
     const cur = stack.pop()!;
     if (cur.id === targetId) return true;

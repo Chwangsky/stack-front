@@ -1,6 +1,5 @@
 import { BlockEditor } from "./components/BlockEditor";
 
-// 서버에서 기본 데이터 (예시)
 const initialBlocks = [
   { id: "1", content: "제목 블록", children: [] },
   {
@@ -25,7 +24,7 @@ const initialBlocks = [
 export default function Page() {
   return (
     <main className="p-6 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold mb-4">📝 Notion 스타일 DnD 실험</h1>
+      <h1 className="text-xl font-bold mb-4">Notion 스타일 DnD 실험</h1>
       {/* Client Component로 데이터 전달 */}
       <BlockEditor initialBlocks={initialBlocks} />
     </main>

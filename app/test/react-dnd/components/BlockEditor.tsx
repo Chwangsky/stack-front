@@ -4,7 +4,6 @@ import {
   DndContext,
   DragEndEvent,
   DragOverEvent,
-  DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
@@ -15,22 +14,37 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useMemo, useState } from "react";
-import { Block, OverInfo } from "../types";
-import { DropPosition } from "../types/DropPosition";
-import { customCollisionDetection } from "../utils/customCollision";
+import { Node, OverInfo } from "../types";
 
+import { customCollisionDetection } from "../utils/customCollisionDetection";
 import {
-  findBlockById,
   insertAfter,
   insertBefore,
-  insertBlock,
+  insertInside,
   isAncestor,
-  removeBlock,
+  removeNode,
 } from "../utils/treeUtils";
 import { SortableBlock } from "./SortableBlock";
 
-export const BlockEditor = ({ initialBlocks }: { initialBlocks: Block[] }) => {
-  const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
+function computePosition(e: DragOverEvent): "top" | "bottom" | "inside" | null {
+  if (!e.over) return null;
+  const activeRect = e.active.rect.current;
+  const overRect = e.over.rect;
+
+  const activeCenterY =
+    (activeRect.translated?.top ?? activeRect.initial?.top ?? 0) +
+    (activeRect.translated?.height ?? activeRect.initial?.height ?? 0) / 2;
+
+  const top = overRect.top + overRect.height * 0.25; // ㅇ
+  const bottom = overRect.bottom - overRect.height * 0.25;
+
+  if (activeCenterY < top) return "top";
+  if (activeCenterY > bottom) return "bottom";
+  return "inside";
+}
+
+export const BlockEditor = ({ initialBlocks }: { initialBlocks: Node[] }) => {
+  const [blocks, setBlocks] = useState<Node[]>(initialBlocks);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overInfo, setOverInfo] = useState<OverInfo>({
     id: null,
@@ -45,35 +59,43 @@ export const BlockEditor = ({ initialBlocks }: { initialBlocks: Block[] }) => {
   };
 
   const handleDragOver = (e: DragOverEvent) => {
-    const id = (e.over?.id as string) ?? null;
-    const position =
-      (e.over?.data?.current as any)?.droppable?.position ?? null;
-    setOverInfo({ id, position });
+    if (!e.over) {
+      setOverInfo({ id: null, position: null });
+      return;
+    }
+    const pos = computePosition(e);
+    setOverInfo({ id: String(e.over.id), position: pos });
   };
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     setActiveId(null);
     setOverInfo({ id: null, position: null });
-    if (!over) return;
 
-    const targetId = over.id.toString();
-    const position: DropPosition | undefined = (over.data.current as any)
-      ?.droppable?.position;
-    console.log(position); // undefined
-    if (!position) return;
+    if (!over) {
+      // root 맨 끝으로
+      setBlocks((prev) => {
+        const [removed, rest] = removeNode(prev, active.id as string);
+        return removed ? [...rest, removed] : prev;
+      });
+      return;
+    }
+
+    const targetId = String(over.id);
+    const pos = computePosition(e);
+    if (!pos) return;
+
+    if (active.id === targetId) return;
 
     if (isAncestor(blocks, active.id as string, targetId)) return;
 
     setBlocks((prev) => {
-      const [removed, withoutActive] = removeBlock(prev, active.id as string);
+      const [removed, rest] = removeNode(prev, active.id as string);
       if (!removed) return prev;
 
-      if (position === "top")
-        return insertBefore(withoutActive, targetId, removed);
-      if (position === "bottom")
-        return insertAfter(withoutActive, targetId, removed);
-      return insertBlock(withoutActive, targetId, removed);
+      if (pos === "top") return insertBefore(rest, targetId, removed);
+      if (pos === "bottom") return insertAfter(rest, targetId, removed);
+      return insertInside(rest, targetId, removed);
     });
   };
 
@@ -90,14 +112,6 @@ export const BlockEditor = ({ initialBlocks }: { initialBlocks: Block[] }) => {
           <SortableBlock key={block.id} block={block} overInfo={overInfo} />
         ))}
       </SortableContext>
-
-      <DragOverlay>
-        {activeId ? (
-          <div className="border p-2 rounded shadow bg-gray-600 text-white opacity-95">
-            {findBlockById(blocks, activeId)?.content}
-          </div>
-        ) : null}
-      </DragOverlay>
     </DndContext>
   );
 };
