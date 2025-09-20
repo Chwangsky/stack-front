@@ -1,22 +1,22 @@
 import { BlockEditor } from "./components/BlockEditor";
 
 const initialBlocks = [
-  { id: "1", content: "제목 블록", children: [] },
+  { id: "1", content: "A", children: [] },
   {
     id: "2",
-    content: "리스트 블록",
+    content: "B",
     children: [
-      { id: "2-1", content: "리스트 아이템 1", children: [] },
-      { id: "2-2", content: "리스트 아이템 2", children: [] },
+      { id: "2-1", content: "B-1", children: [] },
+      { id: "2-2", content: "B-2", children: [] },
     ],
   },
-  { id: "3", content: "텍스트 블록", children: [] },
+  { id: "3", content: "C", children: [] },
   {
     id: "4",
-    content: "리스트 블록2",
+    content: "D",
     children: [
-      { id: "4-1", content: "리스트 아이템 1", children: [] },
-      { id: "4-2", content: "리스트 아이템 2", children: [] },
+      { id: "4-1", content: "D-1", children: [] },
+      { id: "4-2", content: "D-2", children: [] },
     ],
   },
 ];

@@ -1,4 +1,6 @@
+import { DragEndEvent } from "@dnd-kit/core";
 import { Node } from "../types";
+import { DropPosition } from "../types/DropPosition";
 
 /**
  * 
@@ -77,23 +79,76 @@ export const insertAfter = (nodes: Node[], targetId: string, node: Node): Node[]
 };
 
 export const insertInside = (nodes: Node[], parentId: string, node: Node): Node[] => {
-  return nodes.map(n =>
-    n.id === parentId
-      ? { ...n, children: [...(n.children ?? []), node] }
-      : n.children
-        ? { ...n, children: insertInside(n.children, parentId, node) }
-        : n
-  );
+  return nodes.map((n) => {
+    // 부모 노드를 찾았다면 children에 새 노드 추가
+    if (n.id === parentId) {
+      const children = n.children ? [...n.children, node] : [node];
+      return { ...n, children };
+    }
+
+    // 자식이 있으면 재귀 탐색
+    if (n.children) {
+      return { ...n, children: insertInside(n.children, parentId, node) };
+    }
+
+    return n;
+  });
 };
 
-export const isAncestor = (nodes: Node[], ancestorId: string, targetId: string): boolean => {
+
+export const isAncestor= (nodes: Node[], ancestorId: string, targetId: string): boolean => {
   const ancestor = findNode(nodes, ancestorId);
-  if (!ancestor) return false;
-  const stack = [...(ancestor.children ?? [])];
-  while (stack.length) {
-    const cur = stack.pop()!;
-    if (cur.id === targetId) return true;
-    if (cur.children) stack.push(...cur.children);
+  if (!ancestor || !ancestor.children) return false;
+
+  for (const child of ancestor.children) {
+    if (child.id === targetId) return true;
+    if (isAncestor(child.children ?? [], child.id, targetId)) return true;
   }
   return false;
-};
+}
+
+export function moveNodeOnce (
+  tree: Node[],
+  activeId: string,
+  targetId: string,
+  position: DropPosition
+): Node[] {
+  if (activeId === targetId) return tree; // 같은자리 이동 처리
+  if (isAncestor(tree, activeId, targetId)) {
+    return tree;
+  }
+
+  const [removed, rest] = removeNode(tree, activeId);
+  if (!removed) return tree;
+
+  if (position === "top")   return insertBefore(rest, targetId, removed);
+  if (position === "bottom")return insertAfter(rest, targetId, removed);
+  return insertInside(rest, targetId, removed);
+}
+
+
+export const computePositionFromRects = (e: DragEndEvent): DropPosition | null => {
+  if (!e.over) return null;
+  const activeRect = e.active.rect.current;
+  const overRect = e.over.rect;
+  const centerY =
+    (activeRect.translated?.top ?? activeRect.initial?.top ?? 0) +
+    (activeRect.translated?.height ?? activeRect.initial?.height ?? 0) / 2;
+
+  const top = overRect.top + overRect.height * 0.3;
+  const bottom = overRect.bottom - overRect.height * 0.3;
+
+  if (centerY < top) return "top";
+  if (centerY > bottom) return "bottom";
+  return "inside";
+}
+
+export const pushAtRootEnd = (nodes: Node[], node: Node): Node[] => {
+  return [...nodes, node];
+}
+
+export const moveToRootEnd = (tree: Node[], activeId: string): Node[] => {
+  const [removed, rest] = removeNode(tree, activeId);
+  if (!removed) return tree;
+  return pushAtRootEnd(rest, removed);
+}
