@@ -3,8 +3,9 @@
 import classNames from "classnames";
 import React, { forwardRef, HTMLAttributes } from "react";
 
-import { Edit } from "@/app/test/sortable3/components/TreeItem/Edit/Edit";
+import { TreeValue } from "../type";
 import { Action } from "./Action";
+import { Edit } from "./Edit";
 import { Handle } from "./Handle";
 import { Remove } from "./Remove";
 import styles from "./TreeItem.module.scss";
@@ -20,7 +21,7 @@ export interface Props extends HTMLAttributes<HTMLLIElement> {
   handleProps?: any;
   indicator?: boolean;
   indentationWidth: number;
-  value: string;
+  value: TreeValue;
   onCollapse?(): void;
   onRemove?(): void;
   onEdit?(): void;
@@ -35,7 +36,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>( // forwardRef is depr
       depth,
       disableSelection,
       disableInteraction,
-      ghost, // ghost.indicator는 어디로 드래그될것인지 표시시
+      ghost, // ghost.indicator는 어디로 드래그될것인지 표시
       handleProps,
       indentationWidth,
       indicator,
@@ -83,9 +84,16 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>( // forwardRef is depr
               {collapseIcon}
             </Action>
           )}
-          <span className={styles.Text}>{value}</span>
-          {!clone && onRemove && <Remove onClick={onRemove} />}
+
+          <span className={styles.Text}>
+            <strong className={styles.Title}>{value.title}</strong>
+            {value.description && (
+              <small className={styles.Description}>{value.description}</small>
+            )}
+          </span>
+
           {!clone && onEdit && <Edit onClick={onEdit} />}
+          {!clone && onRemove && <Remove onClick={onRemove} />}
           {clone && childCount && childCount > 1 ? (
             <span className={styles.Count}>{childCount}</span>
           ) : null}

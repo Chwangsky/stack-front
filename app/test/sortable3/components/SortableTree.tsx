@@ -28,7 +28,7 @@ import { createPortal } from "react-dom";
 
 import { sortableTreeKeyboardCoordinates } from "./keyboardCoordinates";
 import { SortableTreeItem } from "./TreeItem/SortableTreeItem";
-import { FlattenedItem, SensorContext, TreeItems } from "./type";
+import { FlattenedItem, SensorContext, StackItem } from "./type";
 import {
   buildTree,
   findItemDeep,
@@ -40,29 +40,27 @@ import {
   setProperty,
 } from "./utilities";
 
-const initialItems: TreeItems = [
+const initialItems: StackItem[] = [
   {
-    id: "Course",
+    id: "course-1",
+    title: "Course Alpha",
+    description: "Introduction to productivity system",
+    status: "todo",
     children: [
       {
-        id: "Module",
-        children: [
-          { id: "Lesson", children: [{ id: "Learning Object", children: [] }] },
-        ],
-      },
-    ],
-  },
-  {
-    id: "Course 1",
-    children: [
-      {
-        id: "Module 1",
+        id: "module-1",
+        title: "Module 1: Basics",
+        status: "in-progress",
         children: [
           {
-            id: "Lesson 1",
+            id: "lesson-1",
+            title: "Lesson 1: Getting Started",
+            status: "done",
             children: [
               {
-                id: "아주긴 텍스트 1 아주긴 텍스트 1 아주긴 텍스트 1 ",
+                id: "lo-1",
+                title: "Learning Object 1",
+                status: "todo",
                 children: [],
               },
             ],
@@ -72,18 +70,52 @@ const initialItems: TreeItems = [
     ],
   },
   {
-    id: "Course 2",
+    id: "course-2",
+    title: "Course Beta",
+    description: "Advanced techniques",
+    status: "in-progress",
+    timer: {
+      isRunning: false,
+      isOverdued: false,
+      elapsed: 0,
+      deadline: Date.now() + 1000 * 60 * 60, // 1시간 뒤
+    },
     children: [
       {
-        id: "Module 2",
+        id: "module-2",
+        title: "Module 2: Deep Dive",
+        status: "todo",
         children: [
           {
-            id: "Lesson 2",
-            children: [{ id: "Learning Object 2", children: [] }],
+            id: "lesson-2",
+            title: "Lesson 2: Focus Management",
+            status: "todo",
+            children: [
+              {
+                id: "lo-2",
+                title: "Learning Object 2",
+                status: "deferred",
+                alarm: {
+                  duration: 1000 * 60 * 15, // 15분 타이머
+                },
+                children: [],
+              },
+            ],
           },
         ],
       },
     ],
+  },
+  {
+    id: "course-3",
+    title: "Course Gamma",
+    description: "Final project course",
+    status: "deferred",
+    stopwatch: {
+      isRunning: true,
+      elapsed: 5000, // 5초 진행중
+    },
+    children: [],
   },
 ];
 
@@ -100,11 +132,13 @@ const dropAnimation: DropAnimation = {
 
 interface Props {
   collapsible?: boolean;
-  defaultItems?: TreeItems;
+  defaultItems?: StackItem[];
   indentationWidth?: number;
   indicator?: boolean;
   removable?: boolean;
+  editable?: boolean;
 }
+``;
 
 export function SortableTree({
   collapsible,
@@ -112,6 +146,7 @@ export function SortableTree({
   indicator,
   indentationWidth = 20,
   removable,
+  editable,
 }: Props) {
   const [items, setItems] = useState(() => defaultItems);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -128,7 +163,7 @@ export function SortableTree({
     const flattenedTree = flattenTree(items);
     const collapsedItems = flattenedTree.reduce<string[]>(
       (acc, { children, collapsed, id }) =>
-        collapsed && children.length ? [...acc, id] : acc,
+        collapsed && children?.length ? [...acc, id] : acc,
       []
     );
 
@@ -243,23 +278,26 @@ export function SortableTree({
       onDragCancel={handleDragCancel}
     >
       <SortableContext items={sortedIds} strategy={verticalListSortingStrategy}>
-        {flattenedItems.map(({ id, children, collapsed, depth }) => (
-          <SortableTreeItem
-            key={id}
-            id={id}
-            value={id}
-            depth={id === activeId && projected ? projected.depth : depth}
-            indentationWidth={indentationWidth}
-            indicator={indicator}
-            collapsed={Boolean(collapsed && children.length)}
-            onCollapse={
-              collapsible && children.length
-                ? () => handleCollapse(id)
-                : undefined
-            }
-            onRemove={removable ? () => handleRemove(id) : undefined}
-          />
-        ))}
+        {flattenedItems.map(
+          ({ id, title, description, children, collapsed, depth }) => (
+            <SortableTreeItem
+              key={id}
+              id={id}
+              value={{ title: title, description: description }}
+              depth={id === activeId && projected ? projected.depth : depth}
+              indentationWidth={indentationWidth}
+              indicator={indicator}
+              collapsed={Boolean(collapsed && children?.length)}
+              onCollapse={
+                collapsible && children.length
+                  ? () => handleCollapse(id)
+                  : undefined
+              }
+              onRemove={removable ? () => handleRemove(id) : undefined}
+              onEdit={editable ? () => handleEdit(id) : undefined}
+            />
+          )
+        )}
         {typeof window !== "undefined" &&
           createPortal(
             <DragOverlay
@@ -272,7 +310,7 @@ export function SortableTree({
                   depth={activeItem.depth}
                   clone
                   childCount={getChildCount(items, activeId) + 1}
-                  value={activeId}
+                  value={{ title: activeItem.title }}
                   indentationWidth={indentationWidth}
                 />
               ) : null}
@@ -342,6 +380,11 @@ export function SortableTree({
 
   function handleRemove(id: string) {
     setItems((items) => removeItem(items, id));
+  }
+
+  function handleEdit(id: string) {
+    console.log(id);
+    console.log("handle동작작");
   }
 
   function handleCollapse(id: string) {
