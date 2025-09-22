@@ -31,6 +31,7 @@ import { SortableTreeItem } from "./TreeItem/SortableTreeItem";
 import { FlattenedItem, SensorContext, TreeItems } from "./type";
 import {
   buildTree,
+  findItemDeep,
   flattenTree,
   getChildCount,
   getProjection,
@@ -116,6 +117,8 @@ export function SortableTree({
     overId: string;
   } | null>(null);
 
+  const collapseLockRef = useRef(false);
+
   const flattenedItems = useMemo(() => {
     const flattenedTree = flattenTree(items);
     const collapsedItems = flattenedTree.reduce<string[]>(
@@ -146,7 +149,9 @@ export function SortableTree({
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableTreeKeyboardCoordinates(
         sensorContext,
@@ -159,6 +164,7 @@ export function SortableTree({
     () => flattenedItems.map(({ id }) => id),
     [flattenedItems]
   );
+
   const activeItem = activeId
     ? flattenedItems.find(({ id }) => id === activeId)
     : null;
@@ -169,8 +175,6 @@ export function SortableTree({
       offset: offsetLeft,
     };
   }, [flattenedItems, offsetLeft]);
-
-  let collapseLock = false; // used in collapse button rebounce
 
   const announcements: Announcements = {
     onDragStart({ active }) {
@@ -299,6 +303,7 @@ export function SortableTree({
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
+    document.body.style.setProperty("cursor", "");
     resetState();
 
     if (projected && over) {
@@ -335,17 +340,20 @@ export function SortableTree({
   }
 
   function handleCollapse(id: string) {
-    if (collapseLock) return;
-    collapseLock = true;
-    setTimeout(() => (collapseLock = false), 0);
+    const before = findItemDeep(items, id)?.collapsed;
+    // console.log("[collapse] before:", id, before);
 
-    setItems((items) =>
-      setProperty(items, id, "collapsed", (value) => {
-        return !value;
-      })
-    );
+    if (collapseLockRef.current) return;
+    collapseLockRef.current = true;
+    // StrictMode 중복 방지
+    setTimeout(() => {
+      collapseLockRef.current = false;
+    }, 0);
+
+    setItems((items) => setProperty(items, id, "collapsed", (value) => !value));
   }
 
+  // 접근성 보장을 위한 사용자 안내 메서드
   function getMovementAnnouncement(
     eventName: string,
     activeId: string,

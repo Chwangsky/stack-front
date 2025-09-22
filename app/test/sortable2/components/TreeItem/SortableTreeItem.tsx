@@ -4,8 +4,8 @@ import { AnimateLayoutChanges, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CSSProperties } from "react";
 
-import { TreeItem, Props as TreeItemProps } from "./TreeItem";
 import { iOS } from "../utilities";
+import { TreeItem, Props as TreeItemProps } from "./TreeItem";
 
 interface Props extends TreeItemProps {
   id: string;

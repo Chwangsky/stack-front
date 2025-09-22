@@ -11,14 +11,25 @@ import { RectMap } from '@dnd-kit/core/dist/store';
 import { SensorContext } from './type';
 import { getProjection } from './utilities';
 
+enum CustomKeyboardCode {
+    W = "KeyW",
+    A = "KeyA",
+    S = "KeyS",
+    D = "KeyD",
+}
+
 const directions: string[] = [
   KeyboardCode.Down,
   KeyboardCode.Right,
   KeyboardCode.Up,
   KeyboardCode.Left,
+  CustomKeyboardCode.W,
+  CustomKeyboardCode.A,
+  CustomKeyboardCode.S,
+  CustomKeyboardCode.D,
 ];
 
-const horizontal: string[] = [KeyboardCode.Left, KeyboardCode.Right];
+const horizontal: string[] = [KeyboardCode.Left, KeyboardCode.Right, CustomKeyboardCode.A, CustomKeyboardCode.D];
 
 export const sortableTreeKeyboardCoordinates: (
   context: SensorContext,
@@ -39,7 +50,7 @@ export const sortableTreeKeyboardCoordinates: (
 
     const {
       current: {items, offset},
-    } = context;
+    } = context; 
 
     if (horizontal.includes(event.code) && over?.id) {
       const {depth, maxDepth, minDepth} = getProjection(
@@ -52,7 +63,7 @@ export const sortableTreeKeyboardCoordinates: (
 
       switch (event.code) {
         case KeyboardCode.Left:
-        case KeyboardCode.A:
+        case CustomKeyboardCode.A:
           if (depth > minDepth) {
             return {
               ...currentCoordinates,
@@ -61,7 +72,7 @@ export const sortableTreeKeyboardCoordinates: (
           }
           break;
         case KeyboardCode.Right:
-        case KeyboardCode.D:
+        case CustomKeyboardCode.D:
           if (depth < maxDepth) {
             return {
               ...currentCoordinates,
@@ -94,13 +105,13 @@ export const sortableTreeKeyboardCoordinates: (
 
         switch (event.code) {
           case KeyboardCode.Down:
-          case KeyboardCode.S:
+          case CustomKeyboardCode.S:
             if (overRect.top < rect.top) {
               containers.push(container);
             }
             break;
           case KeyboardCode.Up:
-          case KeyboardCode.W:
+          case CustomKeyboardCode.W:
             if (overRect.top > rect.top) {
               containers.push(container);
             }
@@ -124,6 +135,7 @@ export const sortableTreeKeyboardCoordinates: (
     droppableRects: rectMap,
   });
     const closestId = getFirstCollision(collisions, 'id');
+    console.log(`closest Id: ${closestId}`);
 
     if (closestId && over?.id) {
       const newNode = droppableContainers.get(closestId)?.node.current;
@@ -151,12 +163,18 @@ export const sortableTreeKeyboardCoordinates: (
             x: newRect.left + depth * indentationWidth,
             y: newRect.top + offset,
           };
+          console.log(newCoordinates);
+
+          console.log(event.key)
+          console.log("Before:", currentCoordinates, "After:", newCoordinates);
 
           return newCoordinates;
         }
       }
     }
   }
+
+  
 
   return undefined;
 };

@@ -25,7 +25,7 @@ export interface Props extends HTMLAttributes<HTMLLIElement> {
   wrapperRef?(node: HTMLLIElement): void;
 }
 
-export const TreeItem = forwardRef<HTMLDivElement, Props>(
+export const TreeItem = forwardRef<HTMLDivElement, Props>( // forwardRef is deprecated since React 19
   (
     {
       childCount,
@@ -33,7 +33,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       depth,
       disableSelection,
       disableInteraction,
-      ghost,
+      ghost, // ghost.indicator는 어디로 드래그될것인지 표시시
       handleProps,
       indentationWidth,
       indicator,
@@ -69,6 +69,8 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
           <Handle tabIndex={0} {...handleProps} />
           {onCollapse && (
             <Action
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={onCollapse}
               className={classNames(
                 styles.Collapse,

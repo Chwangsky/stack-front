@@ -18,7 +18,6 @@ export function Action({ active, className, cursor, style, ...props }: Props) {
     <button
       {...props}
       className={classNames(styles.Action, className)}
-      tabIndex={0}
       style={
         {
           ...style,
